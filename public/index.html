@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>N2 Lettings AI Chatbot</title>
+
+<style>
+    body{ margin:0; font-family:Arial; background:#f6f8fb; }
+
+    /* Floating Bubble (Right Corner) */
+    #chatBubble{
+        position:fixed; bottom:25px; right:25px;
+        width:60px; height:60px; border-radius:50%;
+        background:#e93d3d; color:#fff; font-size:26px; font-weight:bold;
+        display:flex; align-items:center; justify-content:center;
+        cursor:pointer; box-shadow:0 6px 25px rgba(0,0,0,0.22);
+        z-index:9999; transition:.25s;
+    }
+    #chatBubble:hover{ transform:scale(1.05); }
+
+    /* Chat Popup */
+    #chatPopup{
+        position:fixed; bottom:95px; right:25px;
+        width:390px; max-height:580px; height:520px;
+        background:white; border-radius:14px;
+        box-shadow:0 12px 40px rgba(0,0,0,0.25);
+        display:none; flex-direction:column; overflow:hidden;
+        z-index:99999;
+    }
+
+    /* Header */
+    .header{
+        background:#e93d3d; color:white; padding:14px;
+        display:flex; align-items:center; gap:10px;
+    }
+    .avatar{
+        background:white; width:36px; height:36px;
+        color:#e93d3d; border-radius:50%; display:flex;
+        align-items:center; justify-content:center; font-weight:bold;
+    }
+
+    /* Chat area */
+    .chatWindow{ flex:1; padding:16px; overflow-y:auto; background:#f7f9fc; }
+    .bubble{
+        max-width:75%; padding:12px 16px; border-radius:15px;
+        margin-bottom:14px; font-size:15px; line-height:1.45;
+        animation:fade .3s;
+    }
+    .bot{ background:white; border-bottom-left-radius:0; box-shadow:0px 4px 12px rgba(0,0,0,0.07); }
+    .user{ background:#e93d3d; color:white; margin-left:auto; border-bottom-right-radius:0; }
+
+    /* Input Area */
+    .chatInput{ display:flex; padding:12px; border-top:1px solid #dce2ea;}
+    .chatInput input{flex:1; padding:11px; border-radius:8px; border:1px solid #cfd6e3;}
+    .chatInput button{margin-left:8px; padding:11px 15px; border:none; background:#e93d3d; color:white; border-radius:8px; cursor:pointer;}
+
+    /* Typing Animation */
+    #typing{
+        width:50px; background:white; padding:10px; border-radius:15px;
+        display:flex; gap:4px; box-shadow:0px 4px 10px rgba(0,0,0,.07); margin-bottom:10px;
+    }
+    .dot{ width:7px; height:7px; background:#e93d3d; border-radius:50%; animation:blink 1s infinite; }
+    .dot:nth-child(2){ animation-delay:.2s; }
+    .dot:nth-child(3){ animation-delay:.4s; }
+
+    @keyframes blink{ 50%{opacity:.3;} }
+    @keyframes fade{ from{opacity:0; transform:translateY(10px);} }
+</style>
+</head>
+<body>
+
+<!-- FLOATING BUBBLE -->
+<div id="chatBubble">💬</div>
+
+<!-- POPUP CHAT -->
+<div id="chatPopup">
+    <div class="header">
+        <div class="avatar">N2</div>
+        <b>N2 Lettings Assistant</b>
+        <span style="margin-left:auto; cursor:pointer;" id="closeChat">✕</span>
+    </div>
+
+    <div class="chatWindow" id="chatBox">
+        <div class="bubble bot">👋 Hello! I'm your virtual lettings assistant, ask about properties, viewings or rental guidance.</div>
+    </div>
+
+    <div class="chatInput">
+        <input type="text" id="userMsg" placeholder="Type here...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+document.getElementById("chatBubble").onclick=()=>document.getElementById("chatPopup").style.display="flex";
+document.getElementById("closeChat").onclick=()=>document.getElementById("chatPopup").style.display="none";
+
+async function sendMessage(){
+    const box=document.getElementById("chatBox");
+    let msg=document.getElementById("userMsg").value.trim();
+    if(!msg) return;
+
+    add(msg,"user"); document.getElementById("userMsg").value="";
+
+    typing(true);
+    try{
+        let r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});
+        typing(false);
+        let data=await r.json();
+        add(data.reply,"bot");
+    }catch{
+        typing(false);
+        add("⚠ AI server unreachable.","bot");
+    }
+}
+
+function add(t,type){
+    const box=document.getElementById("chatBox");
+    let b=document.createElement("div");
+    b.className="bubble "+type;
+    b.textContent=t;
+    box.appendChild(b); box.scrollTop=box.scrollHeight;
+}
+
+function typing(state){
+    const box=document.getElementById("chatBox");
+    if(state){
+        let t=document.createElement("div");
+        t.id="typing"; t.innerHTML="<div class='dot'></div><div class='dot'></div><div class='dot'></div>";
+        box.appendChild(t); box.scrollTop=box.scrollHeight;
+    }else{
+        let t=document.getElementById("typing"); if(t) t.remove();
+    }
+}
+
+document.getElementById("userMsg").addEventListener("keydown",e=>{if(e.key==="Enter")sendMessage()});
+</script>
+
+</body>
+</html>
